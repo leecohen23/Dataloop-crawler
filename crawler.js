@@ -5,18 +5,29 @@ import * as cheerio from 'cheerio';
 const urlQueue = [];
 const seenAtDepth = {};
 const imgs = { results: [] }
-const maxDepth = 0;
+let maxDepth = 0;
 
+/**
+ * 
+ * @param {String} baseUrl 
+ * @param {String} url 
+ * @returns an absolute path to the website or null
+ */
 const cleanUrl = (baseUrl, url) => {
     if (url === null || typeof url === 'undefined') return null;
     if (url.charAt(url.length - 1) === '/') url = url.slice(0, -1);
     if (url.includes('http')) return url;
-    if (url.startsWith('//')) return url.splice(2);
+    if (url.startsWith('//')) return url.slice(2);
     const urlObj = new URL(baseUrl);
     if (url.startsWith('/')) return urlObj.protocol + '//' + urlObj.hostname + url;
     else return null;
 }
 
+/**
+ * 
+ * @param {String} url 
+ * @returns {Object} containing the links and images of the website
+ */
 const getData = async (url) => {
     const response = await fetch(url);
     const html = await response.text();
@@ -25,8 +36,15 @@ const getData = async (url) => {
     const images = $('img').map((i, element) => element.attribs.src).get();
     return { links, images };
 }
-
-const processUrl = (url, links, images) => {
+/**
+ * 
+ * @param {String} url 
+ * @param {Array} links 
+ * @param {Array} images
+ * 1. Loops through the current images on the website and adds it to the imgs object
+ * 2. Loops through the current links array and adds them to the queue if unvisited
+ */
+const processUrl = (url = '', links = [], images = []) => {
     //add image to Image Object
     images.forEach((image) => {
         const imageUrl = cleanUrl(url, image);
@@ -35,25 +53,67 @@ const processUrl = (url, links, images) => {
     // Add children links to urlQueue if not visited
     links.forEach((link) => {
         const cleanLink = cleanUrl(url, link);
-        console.log(cleanLink);
         if (!seenAtDepth.hasOwnProperty(cleanLink) && cleanLink !== null) {
+            console.log(cleanLink);
             seenAtDepth[cleanLink] = seenAtDepth[url] + 1;
             urlQueue.push(cleanLink);
         }
     })
 }
-
-const crawl = async (startUrl) => {
+/**
+ * 
+ * @param {String} startUrl 
+ * Crawls through the web and writes to responses.txt
+ */
+const crawl = async (startUrl, depth) => {
+    maxDepth = depth;
     seenAtDepth[startUrl] = 0;
     urlQueue.push(startUrl);
     while (urlQueue.length > 0) {
         const currUrl = urlQueue.shift();
-        const { links, images } = await getData(currUrl);
-        processUrl(currUrl, links, images);
+        try {
+            console.log(urlQueue, currUrl);
+            const { links, images } = await getData(currUrl);
+            processUrl(currUrl, links, images);
+        }
+        catch (e) {
+            console.log(e)
+        }
     }
     await fs.writeFile('./response.txt', JSON.stringify(imgs))
 
 }
 
-const urlTest = 'https://dataloop.ai/';
-crawl(urlTest);
+
+/**
+ * Parse the command and execute the correct function. Error checking as well
+ */
+const start = async () => {
+    try {
+        if (typeof process.argv[2] === 'string' && +process.argv[3] < 8) await crawl(process.argv[2], process.argv[3]);
+        else throw new Error('argument');
+    }
+    catch (e) {
+        switch (e.message) {
+            case ('string'):
+                console.log('Please provide a file with a valid document template.')
+                break;
+            case ('filter'):
+                console.log('Please provide a valid filter.');
+                break;
+            case ('argument'):
+                console.log('Please provide a valid argument.');
+                break;
+            case ('file'):
+                console.log('The file is not valid.');
+                break;
+            case ('db'):
+                console.log('One or more tokens is not available.');
+                break;
+            default:
+                console.log('An Error has occurred');
+        }
+    }
+}
+
+start();
