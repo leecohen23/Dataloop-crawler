@@ -74,7 +74,6 @@ const crawl = async (startUrl, depth) => {
             console.log(currUrl);
             const { links, images } = await getData(currUrl);
             processUrl(currUrl, links, images);
-            console.log(imgs);
         }
         catch (e) {
             console.log(e)
