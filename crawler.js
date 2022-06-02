@@ -54,7 +54,6 @@ const processUrl = (url = '', links = [], images = []) => {
     links.forEach((link) => {
         const cleanLink = cleanUrl(url, link);
         if (!seenAtDepth.hasOwnProperty(cleanLink) && cleanLink !== null) {
-            console.log(cleanLink);
             seenAtDepth[cleanLink] = seenAtDepth[url] + 1;
             urlQueue.push(cleanLink);
         }
@@ -72,16 +71,22 @@ const crawl = async (startUrl, depth) => {
     while (urlQueue.length > 0) {
         const currUrl = urlQueue.shift();
         try {
-            console.log(urlQueue, currUrl);
+            console.log(currUrl);
             const { links, images } = await getData(currUrl);
             processUrl(currUrl, links, images);
+            console.log(imgs);
         }
         catch (e) {
             console.log(e)
         }
     }
+    try {
+        console.log('here', imgs);
     await fs.writeFile('./response.txt', JSON.stringify(imgs))
-
+    }
+    catch(e){
+        throw new Error('file');
+    }
 }
 
 
@@ -91,28 +96,12 @@ const crawl = async (startUrl, depth) => {
 const start = async () => {
     try {
         if (typeof process.argv[2] === 'string' && +process.argv[3] < 8) await crawl(process.argv[2], process.argv[3]);
-        else throw new Error('argument');
+        else throw new Error('string');
     }
     catch (e) {
-        switch (e.message) {
-            case ('string'):
-                console.log('Please provide a file with a valid document template.')
-                break;
-            case ('filter'):
-                console.log('Please provide a valid filter.');
-                break;
-            case ('argument'):
-                console.log('Please provide a valid argument.');
-                break;
-            case ('file'):
-                console.log('The file is not valid.');
-                break;
-            case ('db'):
-                console.log('One or more tokens is not available.');
-                break;
-            default:
-                console.log('An Error has occurred');
-        }
+        if (e.message === 'string') console.log('Please provide a valid argument');
+        else if (e.message === 'file') console.log('Error writing to file')
+        else console.log(e);
     }
 }
 
