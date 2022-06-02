@@ -81,10 +81,9 @@ const crawl = async (startUrl, depth) => {
         }
     }
     try {
-        console.log('here', imgs);
-    await fs.writeFile('./response.txt', JSON.stringify(imgs))
+        await fs.writeFile('./response.txt', JSON.stringify(imgs))
     }
-    catch(e){
+    catch (e) {
         throw new Error('file');
     }
 }
